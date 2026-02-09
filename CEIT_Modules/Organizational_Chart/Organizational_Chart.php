@@ -209,11 +209,33 @@ function showBox($member, $position_code, $isFaculty = false)
 
     $colorShade = getColorShade($position_code);
 
+    // Get department acronym from database
+    $deptAcronym = 'CEIT'; // Default fallback
+    $collegeAcronym = 'CEIT'; // Default college acronym
+    
+    if (isset($_SESSION['dept_id'])) {
+        $deptQuery = $conn->prepare("SELECT acronym FROM departments WHERE dept_id = ?");
+        $deptQuery->bind_param("i", $_SESSION['dept_id']);
+        $deptQuery->execute();
+        $deptResult = $deptQuery->get_result();
+        if ($deptRow = $deptResult->fetch_assoc()) {
+            $deptAcronym = $deptRow['acronym'];
+        }
+        
+        // For college dean, always use CEIT (dept_id = 1) as the college
+        $collegeQuery = $conn->prepare("SELECT acronym FROM departments WHERE dept_id = 1");
+        $collegeQuery->execute();
+        $collegeResult = $collegeQuery->get_result();
+        if ($collegeRow = $collegeResult->fetch_assoc()) {
+            $collegeAcronym = $collegeRow['acronym'];
+        }
+    }
+
     $defaultRoles = [
         'president' => 'President, CvSU',
         'vice_president' => 'Vice President, OVPAA',
-        'college_dean' => 'Dean, CEIT',
-        'chairperson' => 'Chairperson, DIT'
+        'college_dean' => 'Dean, ' . $collegeAcronym,  // Use college acronym
+        'chairperson' => 'Chairperson, ' . $deptAcronym
     ];
 
     $defaultRole = isset($defaultRoles[$position_code]) ? $defaultRoles[$position_code] : 'Faculty Member';
@@ -326,7 +348,7 @@ function showBox($member, $position_code, $isFaculty = false)
                 <div>
                     <div class="flex flex-col items-center space-y-4">
                         <?php
-                        $positions = ['president', 'vice_president', 'college_dean', 'chairperson'];
+                        $positions = ['president', 'vice_president', 'college_dean'];
                         foreach ($positions as $pos) {
                             $member = getMember($pos, $conn);
                             echo showBox($member, $pos); // Default circle size for top management

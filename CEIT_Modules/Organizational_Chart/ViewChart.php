@@ -138,11 +138,33 @@ function showViewBox($member, $position_code, $isFaculty = false)
 
     $colorShade = getColorShade($position_code);
 
+    // Get department acronym from database
+    $deptAcronym = 'CEIT'; // Default fallback
+    $collegeAcronym = 'CEIT'; // Default college acronym
+    
+    if (isset($_SESSION['dept_id'])) {
+        $deptQuery = $conn->prepare("SELECT acronym FROM departments WHERE dept_id = ?");
+        $deptQuery->bind_param("i", $_SESSION['dept_id']);
+        $deptQuery->execute();
+        $deptResult = $deptQuery->get_result();
+        if ($deptRow = $deptResult->fetch_assoc()) {
+            $deptAcronym = $deptRow['acronym'];
+        }
+        
+        // For college dean, always use CEIT (dept_id = 1) as the college
+        $collegeQuery = $conn->prepare("SELECT acronym FROM departments WHERE dept_id = 1");
+        $collegeQuery->execute();
+        $collegeResult = $collegeQuery->get_result();
+        if ($collegeRow = $collegeResult->fetch_assoc()) {
+            $collegeAcronym = $collegeRow['acronym'];
+        }
+    }
+
     $defaultRoles = [
         'president' => 'President, CvSU',
         'vice_president' => 'Vice President, OVPAA',
-        'college_dean' => 'Dean, CEIT',
-        'chairperson' => 'Chairperson, DIT'
+        'college_dean' => 'Dean, ' . $collegeAcronym,  // Use college acronym
+        'chairperson' => 'Chairperson, ' . $deptAcronym
     ];
 
     $defaultRole = isset($defaultRoles[$position_code]) ? $defaultRoles[$position_code] : 'Faculty Member';
@@ -157,17 +179,17 @@ function showViewBox($member, $position_code, $isFaculty = false)
     }
 
     // Set height based on whether it's faculty or not
-    $boxHeight = $isFaculty ? 'h-[28px]' : 'h-[30px]';
+    $boxHeight = $isFaculty ? 'h-[37px]' : 'h-[42px]';
 
     if (!$member) {
         $initials = 'NA';
-        $circleContent = "<div class='h-6 w-6 rounded-full border {$colorShade['border']} {$colorShade['bg']} {$colorShade['text']} flex items-center justify-center text-[8px] shadow font-bold'>$initials</div>";
+        $circleContent = "<div class='h-7 w-7 rounded-full border {$colorShade['border']} {$colorShade['bg']} {$colorShade['text']} flex items-center justify-center text-[9px] shadow font-bold'>$initials</div>";
 
-        $boxWidth = $isFaculty ? 'w-full' : 'w-[120px]';
+        $boxWidth = $isFaculty ? 'w-full' : 'w-[140px]';
 
-        return "<div class='border {$colorShade['border']} p-0.5 rounded bg-white shadow-sm text-left {$boxHeight} {$boxWidth} flex items-center space-x-1 mb-[-1px]'>
+        return "<div class='border {$colorShade['border']} p-0.5 rounded bg-white shadow-sm text-left {$boxHeight} {$boxWidth} flex items-center space-x-1.5 mb-[-1px]'>
             $circleContent
-            <div class='text-[7px] leading-tight flex-1 min-w-0'>
+            <div class='text-[8.5px] leading-tight flex-1 min-w-0'>
                 <strong class='block truncate font-medium'>Full Name</strong>
                 <p class='text-gray-600 truncate'>" . htmlspecialchars($defaultRole) . "</p>
             </div>
@@ -175,7 +197,7 @@ function showViewBox($member, $position_code, $isFaculty = false)
     }
 
     if (in_array($position_code, ['cs_coordinator', 'it_coordinator'])) {
-        $roleDisplay = $defaultRole . '<br><span class="text-[6px] font-normal">' . $roleDisplay . '</span>';
+        $roleDisplay = $defaultRole . '<br><span class="text-[7.5px] font-normal">' . $roleDisplay . '</span>';
     }
 
     if (!empty($member['photo'])) {
@@ -187,13 +209,13 @@ function showViewBox($member, $position_code, $isFaculty = false)
         $deptAcronym = $deptRow['acronym'];
 
         $photoPath = getPhotoPath($deptAcronym, htmlspecialchars($member['photo']));
-        $circleContent = "<img src='$photoPath' class='h-6 w-6 rounded-full border {$colorShade['border']} object-cover shadow'>";
+        $circleContent = "<img src='$photoPath' class='h-7 w-7 rounded-full border {$colorShade['border']} object-cover shadow'>";
     } else {
         $initials = getInitials($member['name']);
-        $circleContent = "<div class='h-6 w-6 rounded-full border {$colorShade['border']} {$colorShade['bg']} {$colorShade['text']} flex items-center justify-center text-[8px] shadow font-bold'>$initials</div>";
+        $circleContent = "<div class='h-7 w-7 rounded-full border {$colorShade['border']} {$colorShade['bg']} {$colorShade['text']} flex items-center justify-center text-[9px] shadow font-bold'>$initials</div>";
     }
 
-    $boxWidth = $isFaculty ? 'w-full' : 'w-[120px]';
+    $boxWidth = $isFaculty ? 'w-full' : 'w-[140px]';
 
     // Make the box clickable - add photo path to member data
     $memberDataForModal = $member;
@@ -209,11 +231,11 @@ function showViewBox($member, $position_code, $isFaculty = false)
     
     $memberData = htmlspecialchars(json_encode($memberDataForModal), ENT_QUOTES, 'UTF-8');
     
-    return "<div class='border {$colorShade['border']} p-0.5 rounded bg-white shadow-sm text-left {$boxHeight} {$boxWidth} flex items-center space-x-1 mb-[-1px] cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 person-box' 
+    return "<div class='border {$colorShade['border']} p-0.5 rounded bg-white shadow-sm text-left {$boxHeight} {$boxWidth} flex items-center space-x-1.5 mb-[-1px] cursor-pointer hover:shadow-md hover:scale-105 transition-all duration-200 person-box' 
                  data-member='" . $memberData . "' 
                  data-position='" . htmlspecialchars($position_code) . "'>
         $circleContent
-        <div class='text-[7px] leading-tight flex-1 min-w-0'>
+        <div class='text-[8.5px] leading-tight flex-1 min-w-0'>
             <strong class='block truncate font-medium'>" . htmlspecialchars($member['name']) . "</strong>
             <p class='text-gray-600 truncate'>" . $roleDisplay . "</p>
         </div>
@@ -229,9 +251,9 @@ function showViewBox($member, $position_code, $isFaculty = false)
 
                 <!-- Top Management -->
                 <div>
-                    <div class="flex flex-col items-center space-y-1">
+                    <div class="flex flex-col items-center space-y-1.5">
                         <?php
-                        $positions = ['president', 'vice_president', 'college_dean', 'chairperson'];
+                        $positions = ['president', 'vice_president', 'college_dean'];
                         foreach ($positions as $pos) {
                             $member = getMember($pos, $conn);
                             echo showViewBox($member, $pos);
@@ -242,13 +264,13 @@ function showViewBox($member, $position_code, $isFaculty = false)
 
                 <!-- Faculty Members Section -->
                 <div>
-                    <p class="text-center font-bold bg-dit-medium text-white rounded text-sm mb-0 p-1">
+                    <p class="text-center font-bold bg-dit-medium text-white rounded text-sm mb-0 p-1.5">
                         <?php echo htmlspecialchars(getOrganizationLabel('label1', $_SESSION['dept_id'], $conn)); ?>
                     </p>
                 </div>
 
                 <!-- Single Faculty Container with 8 columns -->
-                <div class="border border-dit-medium rounded p-1 bg-white">
+                <div class="border border-dit-medium rounded p-1.5 bg-white">
                     <?php
                     // Get all faculty members from all units
                     $stmt = $conn->prepare("SELECT * FROM ceit_organization WHERE position_code LIKE '%faculty%' AND department_id = ? ORDER BY 
@@ -292,7 +314,7 @@ function showViewBox($member, $position_code, $isFaculty = false)
                     ?>
 
                     <!-- 8-column grid for faculty members -->
-                    <div class="grid grid-cols-8 gap-1">
+                    <div class="grid grid-cols-8 gap-1.5">
                         <?php
                         // Display all faculty members
                         foreach ($allFacultyMembers as $member) {
