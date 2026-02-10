@@ -253,12 +253,15 @@ if ($dept_id != 1) { // Only show if not CEIT
         // Function to open PDF in parent window modal
         function openPDFInParent(filePath, title, postedDate, fileName) {
             if (window.parent && window.parent !== window) {
+                // Get file extension to determine file type
+                const fileExtension = filePath.split('.').pop().toLowerCase();
                 window.parent.postMessage({
                     type: 'openPDF',
                     filePath: filePath,
                     title: title,
                     postedDate: postedDate,
-                    fileName: fileName
+                    fileName: fileName,
+                    fileType: fileExtension
                 }, '*');
             } else {
                 // Fallback if not in iframe

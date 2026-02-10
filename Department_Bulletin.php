@@ -1003,52 +1003,17 @@ if (isset($modules['Student Development'])) {
           </div>
         </div>
         
-        <!-- Accreditation -->
-        <div class="bg-white rounded-lg shadow-md p-2 flex-1 overflow-auto transition duration-200 transform hover:scale-[1.02]">
+        <!-- CvSU Strategic Plan -->
+        <div class="bg-white rounded-lg shadow-md p-2 flex-1 overflow-hidden transition duration-200 transform hover:scale-[1.02]">
           <div class="h-full flex flex-col">
             <div class="card-header mb-2 text-orange-600 flex items-center p-2 sm:p-3 border-b">
-              <i class="fas fa-award mr-2"></i> Accreditation Status
+              <i class="fas fa-bullseye mr-2"></i> CvSU Strategic Plan
             </div>
-            <div class="carousel accreditation-carousel flex-grow relative">
-              <div class="carousel-item active h-full">
-                <div class="h-full flex items-center justify-center bg-gray-100 responsive-bg" style="background-image: url('images/bg-small.png');">
-                  <div class="carousel-text p-2 sm:p-3" style="margin: 5px 10px; background-color: rgba(240, 240, 240, 0.8); border-radius: 6px;">
-                    BSIT Program<br><br>
-                    Level IV Accredited Status<br>
-                    PACUCOA
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-item h-full">
-                <div class="h-full flex items-center justify-center bg-gray-100 responsive-bg" style="background-image: url('images/bg-small.png');">
-                  <div class="carousel-text p-2 sm:p-3" style="margin: 5px 10px; background-color: rgba(240, 240, 240, 0.8); border-radius: 6px;">
-                    BSCS Program<br><br>
-                    Level III Accredited Status<br>
-                    PACUCOA
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-item h-full">
-                <div class="h-full flex items-center justify-center bg-gray-100 responsive-bg" style="background-image: url('images/bg-small.png');">
-                  <div class="carousel-text p-2 sm:p-3" style="margin: 5px 10px; background-color: rgba(240, 240, 240, 0.8); border-radius: 6px;">
-                    BSIS Program<br><br>
-                    Level II Accredited Status<br>
-                    PACUCOA
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="flex justify-center space-x-2 mt-2">
-              <button class="accreditation-prev-btn bg-orange-500 text-white p-1 sm:p-2 rounded-full hover:bg-orange-600 transition duration-200 transform hover:scale-110">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button class="accreditation-next-btn bg-orange-500 text-white p-1 sm:p-2 rounded-full hover:bg-orange-600 transition duration-200 transform hover:scale-110">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+            <div class="flex-grow" style="height: calc(100% - 50px);">
+              <iframe src="Modules/Institutional_Development/InstitutionalDevelopmentBulletin.php?category=strategic&dept_id=<?php echo $dept_id; ?>" 
+                      style="width: 100%; height: 100%; border: none;" 
+                      frameborder="0">
+              </iframe>
             </div>
           </div>
         </div>
@@ -1162,112 +1127,18 @@ if (isset($modules['Student Development'])) {
           <div class="tab-content">
             <!-- GAD Tab -->
             <div class="tab-pane active" id="gad-tab">
-              <?php 
-              // Get GAD data directly
-              $query = "SELECT * FROM department_post WHERE module = ? AND dept_id = ? AND status = 'Approved' ORDER BY created_at DESC";
-              $stmt = $conn->prepare($query);
-              $stmt->bind_param("ii", $modules['GAD'], $dept_id);
-              $stmt->execute();
-              $result = $stmt->get_result();
-              $gads = [];
-              while ($row = $result->fetch_assoc()) {
-                  $gads[] = [
-                      'file_path' => "uploads/{$dept_acronym}/GAD/" . $row['file_path'],
-                      'description' => $row['description'],
-                      'posted_on' => date("F j, Y", strtotime($row['created_at']))
-                  ];
-              }
-              ?>
-              <?php if (count($gads) > 0): ?>
-                <div class="carousel-container bg-white shadow-lg rounded-lg p-4 flex flex-col justify-between h-full">
-                  <div id="gad-viewer" class="pdf-preview-area rounded mb-4 bg-gray-50">
-                    <div class="loading-indicator">
-                      <div class="spinner"></div>
-                      <p class="text-gray-500 text-sm">Loading preview...</p>
-                    </div>
-                    <div class="view-hint">Click to view full GAD</div>
-                  </div>
-                  <div class="text-center mb-2">
-                    <p id="gad-description" class="text-base font-semibold text-gray-800 truncate px-2"></p>
-                    <p id="gad-filename" class="text-sm text-gray-600 italic"></p>
-                  </div>
-                  <div class="text-center text-sm text-gray-500">
-                    <span id="gad-posted-date"></span>
-                  </div>
-                  <div class="flex justify-center space-x-2 mt-2">
-                    <button id="gad-prev-btn" class="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors duration-200 shadow-md">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button id="gad-next-btn" class="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors duration-200 shadow-md">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              <?php else: ?>
-                <div class="no-gad-message flex flex-col justify-center items-center h-full p-4 text-center">
-                  <i class="fas fa-users text-gray-400 text-5xl mb-4"></i>
-                  <p class="text-gray-600 text-lg">No GAD announcements available</p>
-                </div>
-              <?php endif; ?>
+              <iframe src="Modules/Institutional_Development/InstitutionalDevelopmentBulletin.php?category=gender&dept_id=<?php echo $dept_id; ?>" 
+                      style="width: 100%; height: 100%; border: none;" 
+                      frameborder="0">
+              </iframe>
             </div>
             
             <!-- Student Development Tab -->
             <div class="tab-pane" id="student-dev-tab">
-              <?php 
-              // Get Student Development data directly
-              $query = "SELECT * FROM department_post WHERE module = ? AND dept_id = ? AND status = 'Approved' ORDER BY created_at DESC";
-              $stmt = $conn->prepare($query);
-              $stmt->bind_param("ii", $modules['Student Development'], $dept_id);
-              $stmt->execute();
-              $result = $stmt->get_result();
-              $studentDevs = [];
-              while ($row = $result->fetch_assoc()) {
-                  $studentDevs[] = [
-                      'file_path' => "uploads/{$dept_acronym}/Student Development/" . $row['file_path'],
-                      'description' => $row['description'],
-                      'posted_on' => date("F j, Y", strtotime($row['created_at']))
-                  ];
-              }
-              ?>
-              <?php if (count($studentDevs) > 0): ?>
-                <div class="carousel-container bg-white shadow-lg rounded-lg p-4 flex flex-col justify-between h-full">
-                  <div id="student-dev-viewer" class="pdf-preview-area rounded mb-4 bg-gray-50">
-                    <div class="loading-indicator">
-                      <div class="spinner"></div>
-                      <p class="text-gray-500 text-sm">Loading preview...</p>
-                    </div>
-                    <div class="view-hint">Click to view full Student Dev</div>
-                  </div>
-                  <div class="text-center mb-2">
-                    <p id="student-dev-description" class="text-base font-semibold text-gray-800 truncate px-2"></p>
-                    <p id="student-dev-filename" class="text-sm text-gray-600 italic"></p>
-                  </div>
-                  <div class="text-center text-sm text-gray-500">
-                    <span id="student-dev-posted-date"></span>
-                  </div>
-                  <div class="flex justify-center space-x-2 mt-2">
-                    <button id="student-dev-prev-btn" class="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors duration-200 shadow-md">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button id="student-dev-next-btn" class="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors duration-200 shadow-md">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              <?php else: ?>
-                <div class="no-student-dev-message flex flex-col justify-center items-center h-full p-4 text-center">
-                  <i class="fas fa-graduation-cap text-gray-400 text-5xl mb-4"></i>
-                  <p class="text-gray-600 text-lg">No student development announcements available</p>
-                </div>
-              <?php endif; ?>
+              <iframe src="Modules/Institutional_Development/InstitutionalDevelopmentBulletin.php?category=student&dept_id=<?php echo $dept_id; ?>" 
+                      style="width: 100%; height: 100%; border: none;" 
+                      frameborder="0">
+              </iframe>
             </div>
           </div>
         </div>
@@ -2426,7 +2297,7 @@ if (isset($modules['Student Development'])) {
       <div style="color: white; font-size: 0.9rem; font-weight: 500;">
         Posted on <span style="font-weight: 600;" id="pdf-posted-date">Loading...</span> | File: <span style="font-style: italic;" id="pdf-file-name">Loading...</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 15px;">
+      <div style="display: flex; align-items: center; gap: 15px;" id="pdf-navigation-container">
         <button onclick="goToPreviousPages()" id="pdf-prev-btn" style="background: #ea580c; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); font-size: 1.1rem;">
           <i class="fas fa-chevron-left"></i>
         </button>
@@ -2436,10 +2307,10 @@ if (isset($modules['Student Development'])) {
         <button onclick="goToNextPages()" id="pdf-next-btn" style="background: #ea580c; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); font-size: 1.1rem;">
           <i class="fas fa-chevron-right"></i>
         </button>
-        <button onclick="closePDFModal()" style="background: #dc2626; border: none; color: white; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); transition: all 0.2s;">
-          <i class="fas fa-times"></i>
-        </button>
       </div>
+      <button onclick="closePDFModal()" style="background: #dc2626; border: none; color: white; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); transition: all 0.2s;">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
   </div>
 </div>
@@ -2458,13 +2329,13 @@ if (isset($modules['Student Development'])) {
   // Listen for messages from iframe
   window.addEventListener('message', function(event) {
     if (event.data.type === 'openPDF') {
-      openPDFModal(event.data.filePath, event.data.title, event.data.postedDate, event.data.fileName);
+      openPDFModal(event.data.filePath, event.data.title, event.data.postedDate, event.data.fileName, event.data.fileType);
     }
   });
 
-  function openPDFModal(filePath, title, postedDate, fileName) {
+  function openPDFModal(filePath, title, postedDate, fileName, fileType) {
     document.getElementById('pdf-viewer-modal').style.display = 'block';
-    document.getElementById('pdf-modal-title').textContent = title || 'Announcement';
+    document.getElementById('pdf-modal-title').textContent = title || 'Document';
     
     // Update the footer with dynamic data
     const fileNameToDisplay = fileName || filePath.split('/').pop();
@@ -2473,10 +2344,20 @@ if (isset($modules['Student Development'])) {
     document.getElementById('pdf-posted-date').textContent = dateToDisplay;
     document.getElementById('pdf-file-name').textContent = fileNameToDisplay;
     
-    // Ensure the path is correct - if it starts with uploads/, it's already correct
-    // If not, we might need to adjust it
-    console.log('Opening PDF with path:', filePath);
-    loadPDFInModal(filePath);
+    // Detect file type from extension if not provided
+    if (!fileType) {
+      const extension = filePath.split('.').pop().toLowerCase();
+      fileType = extension;
+    }
+    
+    console.log('Opening file with path:', filePath, 'type:', fileType);
+    
+    // Check if it's an image file
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(fileType)) {
+      loadImageInModal(filePath);
+    } else {
+      loadPDFInModal(filePath);
+    }
   }
 
   function closePDFModal() {
@@ -2486,7 +2367,32 @@ if (isset($modules['Student Development'])) {
     totalPDFPages = 0;
   }
 
+  function loadImageInModal(filePath) {
+    const container = document.getElementById('pdf-pages-container');
+    
+    // Hide navigation buttons container for images
+    document.getElementById('pdf-navigation-container').style.display = 'none';
+    
+    // Clear container and display image
+    container.innerHTML = `
+      <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+        <img src="${filePath}" alt="Document Image" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+      </div>
+    `;
+  }
+
   function loadPDFInModal(filePath) {
+    const container = document.getElementById('pdf-pages-container');
+    
+    // Show navigation buttons container for PDFs
+    document.getElementById('pdf-navigation-container').style.display = 'flex';
+    
+    // Clear container and recreate canvas elements
+    container.innerHTML = `
+      <canvas id="pdf-page-1" style="box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border-radius: 8px; max-width: 500px; height: auto;"></canvas>
+      <canvas id="pdf-page-2" style="box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); border-radius: 8px; max-width: 500px; height: auto;"></canvas>
+    `;
+    
     const loadingTask = pdfjsLib.getDocument(filePath);
     loadingTask.promise.then(pdf => {
       currentPDFDoc = pdf;

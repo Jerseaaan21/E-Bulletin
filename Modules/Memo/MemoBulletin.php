@@ -234,7 +234,7 @@ while ($row = $result->fetch_assoc()) {
                     // Display image preview
                     viewer.innerHTML = `
                     <img src="${pdf.file_path}" alt="Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;">
-                    <div class="view-hint">Click to view full memo</div>
+                    <div class="view-hint">Click to view full image</div>
                 `;
                 } else {
                     // For other file types, show icon
@@ -243,20 +243,27 @@ while ($row = $result->fetch_assoc()) {
                         <i class="fas fa-file text-gray-400 text-6xl mb-2"></i>
                         <p class="text-gray-600">No preview available</p>
                     </div>
-                    <div class="view-hint">Click to view full memo</div>
+                    <div class="view-hint">Click to view file</div>
                 `;
                 }
             }
 
             // Add click event to open modal
             viewer.addEventListener('click', () => {
-                // Try to access the function in the parent window
-                if (typeof window.parent.openMemoModal === 'function') {
-                    window.parent.openMemoModal(currentIndex);
-                } else if (typeof openMemoModal === 'function') {
-                    openMemoModal(currentIndex);
+                const pdf = window.parent.pdfData[currentIndex];
+                const fileExtension = pdf.file_path.split('.').pop().toLowerCase();
+                
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'openPDF',
+                        filePath: pdf.file_path,
+                        title: pdf.description,
+                        postedDate: pdf.posted_on,
+                        fileName: pdf.file_path.split('/').pop(),
+                        fileType: fileExtension
+                    }, '*');
                 } else {
-                    console.error('openMemoModal function not found');
+                    console.error('Parent window not accessible');
                 }
             });
 

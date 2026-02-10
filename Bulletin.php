@@ -1032,7 +1032,7 @@ if (isset($modules['About'])) {
                 <span>Accreditation</span>
               </button>
               <button class="tab-btn" data-tab="strategic-plan">
-                <i class="fas fa-clipboard-list"></i>
+                <i class="fas fa-bullseye"></i>
                 <span>Strategic Plan</span>
               </button>
             </div>
