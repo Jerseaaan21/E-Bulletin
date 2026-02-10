@@ -1041,49 +1041,10 @@ if (isset($modules['About'])) {
             <div class="tab-content">
               <!-- Accreditation Tab -->
               <div class="tab-pane active" id="accreditation-tab">
-                <div class="h-full flex flex-col">
-                  <div class="carousel accreditation-carousel flex-grow relative">
-                    <div class="carousel-item active h-full">
-                      <div class="h-full flex items-center justify-center bg-gray-100 responsive-bg" style="background-image: url('images/bg-small.png');">
-                        <div class="carousel-text p-2 sm:p-3" style="margin: 5px 10px; background-color: rgba(240, 240, 240, 0.8); border-radius: 6px;">
-                          BSIT Program<br><br>
-                          Level IV Accredited Status<br>
-                          PACUCOA
-                        </div>
-                      </div>
-                    </div>
-                    <div class="carousel-item h-full">
-                      <div class="h-full flex items-center justify-center bg-gray-100 responsive-bg" style="background-image: url('images/bg-small.png');">
-                        <div class="carousel-text p-2 sm:p-3" style="margin: 5px 10px; background-color: rgba(240, 240, 240, 0.8); border-radius: 6px;">
-                          BSCS Program<br><br>
-                          Level III Accredited Status<br>
-                          PACUCOA
-                        </div>
-                      </div>
-                    </div>
-                    <div class="carousel-item h-full">
-                      <div class="h-full flex items-center justify-center bg-gray-100 responsive-bg" style="background-image: url('images/bg-small.png');">
-                        <div class="carousel-text p-2 sm:p-3" style="margin: 5px 10px; background-color: rgba(240, 240, 240, 0.8); border-radius: 6px;">
-                          BSIS Program<br><br>
-                          Level II Accredited Status<br>
-                          PACUCOA
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="flex justify-center space-x-2 mt-2">
-                    <button class="accreditation-prev-btn bg-orange-500 text-white p-1 sm:p-2 rounded-full hover:bg-orange-600 transition duration-200 transform hover:scale-110">
-                      <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button class="accreditation-next-btn bg-orange-500 text-white p-1 sm:p-2 rounded-full hover:bg-orange-600 transition duration-200 transform hover:scale-110">
-                      <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="6" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+                <iframe src="CEIT_Modules/Accreditation_Status/ViewStatus.php" 
+                        style="width: 100%; height: 100%; border: none;" 
+                        frameborder="0">
+                </iframe>
               </div>
               
               <!-- Strategic Plan Tab -->
@@ -2631,6 +2592,84 @@ if (isset($modules['About'])) {
     if (e.key === 'Escape') {
       closePDFModal();
     }
+  });
+
+  // Tab functionality for all tab containers
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get all tab buttons
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    
+    tabButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        const targetTab = this.getAttribute('data-tab');
+        
+        // Find the parent tab container
+        const tabContainer = this.closest('.tab-container');
+        if (!tabContainer) return;
+        
+        // Remove active class from all buttons in this container
+        const containerButtons = tabContainer.querySelectorAll('.tab-btn');
+        containerButtons.forEach(btn => btn.classList.remove('active'));
+        
+        // Add active class to clicked button
+        this.classList.add('active');
+        
+        // Hide all tab panes in this container
+        const tabPanes = tabContainer.querySelectorAll('.tab-pane');
+        tabPanes.forEach(pane => pane.classList.remove('active'));
+        
+        // Show the target tab pane
+        const targetPane = tabContainer.querySelector(`#${targetTab}-tab`);
+        if (targetPane) {
+          targetPane.classList.add('active');
+        }
+      });
+    });
+    
+    console.log('Tab functionality initialized for', tabButtons.length, 'buttons');
+  });
+
+  // Carousel functionality for About CvSU section
+  document.addEventListener('DOMContentLoaded', function() {
+    const mandatesCarousel = document.querySelector('.mandates-carousel');
+    if (!mandatesCarousel) return;
+    
+    const items = mandatesCarousel.querySelectorAll('.carousel-item');
+    const prevBtn = document.querySelector('.mandates-prev-btn');
+    const nextBtn = document.querySelector('.mandates-next-btn');
+    
+    if (items.length === 0) return;
+    
+    let currentIndex = 0;
+    
+    function showSlide(index) {
+      items.forEach((item, i) => {
+        item.classList.remove('active');
+        if (i === index) {
+          item.classList.add('active');
+        }
+      });
+    }
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function() {
+        currentIndex = (currentIndex - 1 + items.length) % items.length;
+        showSlide(currentIndex);
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function() {
+        currentIndex = (currentIndex + 1) % items.length;
+        showSlide(currentIndex);
+      });
+    }
+    
+    // Auto-rotate carousel every 10 seconds
+    setInterval(function() {
+      currentIndex = (currentIndex + 1) % items.length;
+      showSlide(currentIndex);
+    }, 10000);
   });
 </script>
 

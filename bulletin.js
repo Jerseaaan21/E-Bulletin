@@ -41,41 +41,33 @@ function updateDateTime() {
 setInterval(updateDateTime, 1000);
 updateDateTime();
 
-// Synchronized carousel functionality for About CvSU and Accreditation
-function synchronizedCarouselChange(direction) {
-  const mandatesCarousel = document.querySelector('.mandates-carousel');
-  const accreditationCarousel = document.querySelector('.accreditation-carousel');
-  
-  // Get current active items
-  const mandatesItems = mandatesCarousel.querySelectorAll(".carousel-item");
-  const accreditationItems = accreditationCarousel.querySelectorAll(".carousel-item");
-  
-  let mandatesActiveIndex = Array.from(mandatesItems).findIndex((item) =>
+// Individual carousel functionality for About CvSU (mandates)
+function prevMandatesCarousel() {
+  const carousel = document.querySelector('.mandates-carousel');
+  const items = carousel.querySelectorAll(".carousel-item");
+  let activeIndex = Array.from(items).findIndex((item) =>
     item.classList.contains("active")
   );
-  let accreditationActiveIndex = Array.from(accreditationItems).findIndex((item) =>
-    item.classList.contains("active")
-  );
-  
-  // Remove active class from current items
-  mandatesItems[mandatesActiveIndex].classList.remove("active");
-  accreditationItems[accreditationActiveIndex].classList.remove("active");
-  
-  // Calculate new indices based on direction
-  if (direction === 'next') {
-    mandatesActiveIndex = (mandatesActiveIndex + 1) % mandatesItems.length;
-    accreditationActiveIndex = (accreditationActiveIndex + 1) % accreditationItems.length;
-  } else {
-    mandatesActiveIndex = (mandatesActiveIndex - 1 + mandatesItems.length) % mandatesItems.length;
-    accreditationActiveIndex = (accreditationActiveIndex - 1 + accreditationItems.length) % accreditationItems.length;
-  }
-  
-  // Add active class to new items
-  mandatesItems[mandatesActiveIndex].classList.add("active");
-  accreditationItems[accreditationActiveIndex].classList.add("active");
+  items[activeIndex].classList.remove("active");
+  activeIndex = (activeIndex - 1 + items.length) % items.length;
+  items[activeIndex].classList.add("active");
   
   // Reset the auto-rotation interval
-  resetCarouselInterval('synchronized-carousels');
+  resetCarouselInterval('mandates-carousel');
+}
+
+function nextMandatesCarousel() {
+  const carousel = document.querySelector('.mandates-carousel');
+  const items = carousel.querySelectorAll(".carousel-item");
+  let activeIndex = Array.from(items).findIndex((item) =>
+    item.classList.contains("active")
+  );
+  items[activeIndex].classList.remove("active");
+  activeIndex = (activeIndex + 1) % items.length;
+  items[activeIndex].classList.add("active");
+  
+  // Reset the auto-rotation interval
+  resetCarouselInterval('mandates-carousel');
 }
 
 // Synchronized carousel functionality for Announcement and GAD
@@ -358,8 +350,8 @@ function startCarouselRotation(carouselClass, interval = 10000) {
   
   // Set up the new interval
   carouselIntervals[carouselClass] = setInterval(() => {
-    if (carouselClass === 'synchronized-carousels') {
-      synchronizedCarouselChange('next');
+    if (carouselClass === 'mandates-carousel') {
+      nextMandatesCarousel();
     } else if (carouselClass === 'synchronized-announcement-gad') {
       synchronizedAnnouncementGadChange('next');
     } else if (carouselClass === 'synchronized-memo-studentdev') {
@@ -1049,38 +1041,29 @@ function initializeBulletin(announcements, memos, gads, studentDevs) {
   gadData = gads;
   studentDevData = studentDevs;
   
-  // Synchronized carousel controls for About CvSU and Accreditation Status
-  document.querySelector('.mandates-prev-btn').addEventListener('click', function() {
-    synchronizedCarouselChange('prev');
-    
-    // Pause page rotation temporarily
-    pausePageRotation();
-    resumePageRotation();
-  });
+  // Individual carousel controls for About CvSU (mandates) only
+  const mandatesPrevBtn = document.querySelector('.mandates-prev-btn');
+  const mandatesNextBtn = document.querySelector('.mandates-next-btn');
   
-  document.querySelector('.mandates-next-btn').addEventListener('click', function() {
-    synchronizedCarouselChange('next');
-    
-    // Pause page rotation temporarily
-    pausePageRotation();
-    resumePageRotation();
-  });
+  if (mandatesPrevBtn) {
+    mandatesPrevBtn.addEventListener('click', function() {
+      prevMandatesCarousel();
+      
+      // Pause page rotation temporarily
+      pausePageRotation();
+      resumePageRotation();
+    });
+  }
   
-  document.querySelector('.accreditation-prev-btn').addEventListener('click', function() {
-    synchronizedCarouselChange('prev');
-    
-    // Pause page rotation temporarily
-    pausePageRotation();
-    resumePageRotation();
-  });
-  
-  document.querySelector('.accreditation-next-btn').addEventListener('click', function() {
-    synchronizedCarouselChange('next');
-    
-    // Pause page rotation temporarily
-    pausePageRotation();
-    resumePageRotation();
-  });
+  if (mandatesNextBtn) {
+    mandatesNextBtn.addEventListener('click', function() {
+      nextMandatesCarousel();
+      
+      // Pause page rotation temporarily
+      pausePageRotation();
+      resumePageRotation();
+    });
+  }
   
   // Setup tabs
   setupTabs();
@@ -1088,29 +1071,18 @@ function initializeBulletin(announcements, memos, gads, studentDevs) {
   // Initialize page navigation
   updatePageNavigation();
   
-  // Start automatic rotation for synchronized carousels
-  startCarouselRotation('synchronized-carousels', 10000); // 10 seconds
+  // Start automatic rotation for mandates carousel only
+  startCarouselRotation('mandates-carousel', 10000); // 10 seconds
   
-  // Add event listeners to pause rotation on hover for both carousels
+  // Add event listeners to pause rotation on hover for mandates carousel
   const mandatesCarousel = document.querySelector('.mandates-carousel');
   if (mandatesCarousel) {
     mandatesCarousel.addEventListener('mouseenter', () => {
-      stopCarouselRotation('synchronized-carousels');
+      stopCarouselRotation('mandates-carousel');
     });
     
     mandatesCarousel.addEventListener('mouseleave', () => {
-      startCarouselRotation('synchronized-carousels', 10000);
-    });
-  }
-  
-  const accreditationCarousel = document.querySelector('.accreditation-carousel');
-  if (accreditationCarousel) {
-    accreditationCarousel.addEventListener('mouseenter', () => {
-      stopCarouselRotation('synchronized-carousels');
-    });
-    
-    accreditationCarousel.addEventListener('mouseleave', () => {
-      startCarouselRotation('synchronized-carousels', 10000);
+      startCarouselRotation('mandates-carousel', 10000);
     });
   }
 }

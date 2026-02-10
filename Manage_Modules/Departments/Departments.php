@@ -38,6 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Special handling for CEIT department creation
             $isCEIT = strtoupper($acronym) === 'CEIT';
 
+            // Get programs data if provided
+            $programs = $_POST['programs'] ?? [];
+
             // Begin transaction
             $conn->begin_transaction();
 
@@ -58,6 +61,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         while ($module = $modulesResult->fetch_assoc()) {
                             $insertModuleStmt->bind_param("ii", $deptId, $module['id']);
                             $insertModuleStmt->execute();
+                        }
+                    }
+                }
+
+                // Insert programs into programs_status table
+                if (!empty($programs)) {
+                    $insertProgramStmt = $conn->prepare("INSERT INTO programs_status (dept_id, program_name, program_code) VALUES (?, ?, ?)");
+                    foreach ($programs as $program) {
+                        if (!empty($program['name']) && !empty($program['code'])) {
+                            $insertProgramStmt->bind_param("iss", $deptId, $program['name'], $program['code']);
+                            $insertProgramStmt->execute();
                         }
                     }
                 }
@@ -109,6 +123,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $currentDept = $deptCheckStmt->get_result()->fetch_assoc();
             $isCEIT = $currentDept && strtoupper($currentDept['acronym']) === 'CEIT';
 
+            // Get programs data if provided
+            $programs = $_POST['programs'] ?? [];
+
             // Begin transaction
             $conn->begin_transaction();
 
@@ -128,6 +145,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $updateOfficerStmt = $conn->prepare("UPDATE users SET dept_id = ? WHERE id = ?");
                     $updateOfficerStmt->bind_param("ii", $deptId, $officerId);
                     $updateOfficerStmt->execute();
+                }
+
+                // Update programs - delete existing and insert new ones
+                $deleteProgramsStmt = $conn->prepare("DELETE FROM programs_status WHERE dept_id = ?");
+                $deleteProgramsStmt->bind_param("i", $deptId);
+                $deleteProgramsStmt->execute();
+
+                if (!empty($programs)) {
+                    $insertProgramStmt = $conn->prepare("INSERT INTO programs_status (dept_id, program_name, program_code) VALUES (?, ?, ?)");
+                    foreach ($programs as $program) {
+                        if (!empty($program['name']) && !empty($program['code'])) {
+                            $insertProgramStmt->bind_param("iss", $deptId, $program['name'], $program['code']);
+                            $insertProgramStmt->execute();
+                        }
+                    }
                 }
 
                 // Handle modules - CEIT department doesn't need department_modules entries
@@ -256,6 +288,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             // Check if this is CEIT department
             $isCEIT = strtoupper($department['acronym']) === 'CEIT';
 
+            // Get programs for this department
+            $programsQuery = "SELECT id, program_name, program_code, accreditation_level, accreditation_date FROM programs_status WHERE dept_id = ? ORDER BY program_name";
+            $programsStmt = $conn->prepare($programsQuery);
+            $programsStmt->bind_param("i", $deptId);
+            $programsStmt->execute();
+            $programsResult = $programsStmt->get_result();
+            $programs = [];
+            while ($row = $programsResult->fetch_assoc()) {
+                $programs[] = $row;
+            }
+
             // Get all available modules
             $allModulesQuery = "SELECT id, name, description FROM modules ORDER BY name";
             $allModulesResult = $conn->query($allModulesQuery);
@@ -269,6 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 echo json_encode([
                     'success' => true,
                     'department' => $department,
+                    'programs' => $programs,
                     'is_ceit' => true,
                     'missing_modules' => [], // No missing modules for CEIT
                     'total_modules' => count($allModules),
@@ -298,6 +342,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 echo json_encode([
                     'success' => true,
                     'department' => $department,
+                    'programs' => $programs,
                     'is_ceit' => false,
                     'missing_modules' => $missingModules,
                     'total_modules' => count($allModules),
@@ -366,6 +411,19 @@ while ($row = $modulesResult->fetch_assoc()) {
  $deptResult = $conn->query($deptQuery);
  $departments = [];
 while ($row = $deptResult->fetch_assoc()) {
+    // Fetch programs for this department
+    $programsQuery = "SELECT program_name, program_code FROM programs_status WHERE dept_id = ? ORDER BY program_name";
+    $programsStmt = $conn->prepare($programsQuery);
+    $programsStmt->bind_param("i", $row['dept_id']);
+    $programsStmt->execute();
+    $programsResult = $programsStmt->get_result();
+    
+    $programs = [];
+    while ($program = $programsResult->fetch_assoc()) {
+        $programs[] = $program;
+    }
+    
+    $row['programs'] = $programs;
     $departments[] = $row;
 }
 
@@ -513,11 +571,11 @@ foreach ($departments as $dept) {
                 <h2 class="text-xl font-bold flex items-center justify-between">
                     <span class="flex items-center">
                         <i class="fas fa-star mr-3"></i>
-                        CEIT Department (<?= count($ceitDepartments) ?>)
+                        College (<?= count($ceitDepartments) ?>)
                     </span>
                     <span class="text-sm font-normal opacity-75">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Main Department
+                        College
                     </span>
                 </h2>
             </div>
@@ -551,11 +609,27 @@ foreach ($departments as $dept) {
                                             <span class="status-badge unassigned ml-2">Unassigned</span>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="flex items-center text-sm text-gray-600">
+                                    <div class="flex items-center text-sm text-gray-600 mb-2">
                                         <i class="fas fa-puzzle-piece mr-2"></i>
                                         <span><?= $dept['module_count'] ?> modules available</span>
                                         <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full ml-2">All Access</span>
                                     </div>
+                                    <?php if (!empty($dept['programs'])): ?>
+                                        <div class="mt-3 pt-3 border-t border-gray-200">
+                                            <div class="flex items-center text-sm text-gray-700 font-medium mb-2">
+                                                <i class="fas fa-graduation-cap mr-2 text-orange-500"></i>
+                                                <span>Programs (<?= count($dept['programs']) ?>)</span>
+                                            </div>
+                                            <div class="space-y-1 max-h-24 overflow-y-auto">
+                                                <?php foreach ($dept['programs'] as $program): ?>
+                                                    <div class="text-xs bg-gray-50 rounded px-2 py-1 flex items-center">
+                                                        <span class="font-medium text-orange-600 mr-2"><?= htmlspecialchars($program['program_code']) ?></span>
+                                                        <span class="text-gray-600 truncate"><?= htmlspecialchars($program['program_name']) ?></span>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="flex justify-end space-x-2">
                                     <button class="p-2 border border-green-500 text-green-500 rounded-lg hover:bg-green-500 hover:text-white transition duration-200 transform hover:scale-110 edit-dept-btn" 
@@ -586,7 +660,7 @@ foreach ($departments as $dept) {
             <div class="section-header">
                 <h2 class="text-xl font-bold flex items-center">
                     <i class="fas fa-building mr-3"></i>
-                    Other Departments (<?= count($otherDepartments) ?>)
+                    Departments (<?= count($otherDepartments) ?>)
                 </h2>
             </div>
             <div class="section-content p-6">
@@ -619,10 +693,26 @@ foreach ($departments as $dept) {
                                             <span class="status-badge unassigned ml-2">Unassigned</span>
                                         <?php endif; ?>
                                     </div>
-                                    <div class="flex items-center text-sm text-gray-600">
+                                    <div class="flex items-center text-sm text-gray-600 mb-2">
                                         <i class="fas fa-puzzle-piece mr-2"></i>
                                         <span><?= $dept['module_count'] ?> modules assigned</span>
                                     </div>
+                                    <?php if (!empty($dept['programs'])): ?>
+                                        <div class="mt-3 pt-3 border-t border-gray-200">
+                                            <div class="flex items-center text-sm text-gray-700 font-medium mb-2">
+                                                <i class="fas fa-graduation-cap mr-2 text-orange-500"></i>
+                                                <span>Programs (<?= count($dept['programs']) ?>)</span>
+                                            </div>
+                                            <div class="space-y-1 max-h-24 overflow-y-auto">
+                                                <?php foreach ($dept['programs'] as $program): ?>
+                                                    <div class="text-xs bg-gray-50 rounded px-2 py-1 flex items-center">
+                                                        <span class="font-medium text-orange-600 mr-2"><?= htmlspecialchars($program['program_code']) ?></span>
+                                                        <span class="text-gray-600 truncate"><?= htmlspecialchars($program['program_name']) ?></span>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="flex justify-end space-x-2">
                                     <button class="p-2 border border-green-500 text-green-500 rounded-lg hover:bg-green-500 hover:text-white transition duration-200 transform hover:scale-110 edit-dept-btn" 
@@ -655,34 +745,64 @@ foreach ($departments as $dept) {
 
     <!-- Create/Edit Department Modal -->
     <div id="dept-modal" class="fixed inset-0 modal-overlay flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 class="text-xl font-bold mb-4" id="modal-title">Create Department</h2>
-            <form id="dept-form" class="space-y-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold text-orange-600 mb-6" id="modal-title">Create Department</h2>
+            <form id="dept-form" class="space-y-6">
                 <input type="hidden" id="dept-id" name="dept_id">
-                <div>
-                    <label for="dept-name" class="block text-sm font-medium text-gray-700">Department Name</label>
-                    <input type="text" id="dept-name" name="dept_name" required
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                
+                <!-- Basic Info Section - 3 columns -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="dept-name" class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-building text-orange-500 mr-1"></i> Department Name
+                        </label>
+                        <input type="text" id="dept-name" name="dept_name" required
+                            class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label for="dept-acronym" class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-tag text-orange-500 mr-1"></i> Acronym
+                        </label>
+                        <input type="text" id="dept-acronym" name="acronym" required
+                            class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label for="dept-officer" class="block text-sm font-medium text-gray-700 mb-1">
+                            <i class="fas fa-user-tie text-orange-500 mr-1"></i> Assign Officer
+                        </label>
+                        <select id="dept-officer" name="officer_id"
+                            class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                            <option value="">No Officer</option>
+                            <?php foreach ($availableOfficers as $officer): ?>
+                                <option value="<?= $officer['id'] ?>">
+                                    <?= htmlspecialchars($officer['name']) ?> (<?= htmlspecialchars($officer['email']) ?>)
+                                    <?php if ($officer['role'] === 'LEAD_MIS'): ?>
+                                        - LEAD MIS
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label for="dept-acronym" class="block text-sm font-medium text-gray-700">Acronym</label>
-                    <input type="text" id="dept-acronym" name="acronym" required
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
-                </div>
-                <div>
-                    <label for="dept-officer" class="block text-sm font-medium text-gray-700">Assign Officer</label>
-                    <select id="dept-officer" name="officer_id"
-                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500">
-                        <option value="">No Officer</option>
-                        <?php foreach ($availableOfficers as $officer): ?>
-                            <option value="<?= $officer['id'] ?>">
-                                <?= htmlspecialchars($officer['name']) ?> (<?= htmlspecialchars($officer['email']) ?>)
-                                <?php if ($officer['role'] === 'LEAD_MIS'): ?>
-                                    - LEAD MIS
-                                <?php endif; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+
+                <!-- Programs Section -->
+                <div id="programs-section" class="border-t pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-graduation-cap text-orange-500 mr-2"></i> Programs
+                        </h3>
+                        <button type="button" id="add-program-btn" 
+                            class="px-3 py-1 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition duration-200 text-sm">
+                            <i class="fas fa-plus mr-1"></i> Add Program
+                        </button>
+                    </div>
+                    
+                    <div id="programs-container" class="space-y-3">
+                        <!-- Programs will be added here dynamically -->
+                        <div class="text-center py-4 text-gray-400 text-sm" id="no-programs-message">
+                            <i class="fas fa-info-circle mr-1"></i> No programs added yet. Click "Add Program" to get started.
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Module Status Section (only shown during edit) -->
@@ -711,14 +831,14 @@ foreach ($departments as $dept) {
                         Modules to be Auto-Assigned (<?= count($allModules) ?>)
                     </h3>
                     <?php if (count($allModules) > 0): ?>
-                        <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto">
                             <?php foreach ($allModules as $module): ?>
-                                <div class="flex items-center p-2 bg-white rounded border">
-                                    <i class="fas fa-check-circle text-green-500 mr-2"></i>
-                                    <div>
-                                        <span class="text-sm font-medium text-gray-800"><?= htmlspecialchars($module['name']) ?></span>
+                                <div class="flex items-start p-2 bg-white rounded border">
+                                    <i class="fas fa-check-circle text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
+                                    <div class="min-w-0">
+                                        <span class="text-sm font-medium text-gray-800 block"><?= htmlspecialchars(str_replace('_', ' ', $module['name'])) ?></span>
                                         <?php if (!empty($module['description'])): ?>
-                                            <p class="text-xs text-gray-600"><?= htmlspecialchars($module['description']) ?></p>
+                                            <p class="text-xs text-gray-600 truncate"><?= htmlspecialchars($module['description']) ?></p>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -824,6 +944,14 @@ foreach ($departments as $dept) {
                 });
             }
 
+            // Add program button
+            const addProgramBtn = document.getElementById('add-program-btn');
+            if (addProgramBtn) {
+                addProgramBtn.addEventListener('click', function() {
+                    addProgramRow();
+                });
+            }
+
             // Edit department buttons
             document.querySelectorAll('.edit-dept-btn').forEach(button => {
                 button.addEventListener('click', function() {
@@ -898,6 +1026,19 @@ foreach ($departments as $dept) {
             document.getElementById('dept-name').value = name;
             document.getElementById('dept-acronym').value = acronym;
             
+            // Check if this is CEIT (college level)
+            const isCEIT = acronym && acronym.toUpperCase() === 'CEIT';
+            
+            // Show/hide Programs section based on whether it's CEIT
+            const programsSection = document.getElementById('programs-section');
+            if (programsSection) {
+                if (isCEIT) {
+                    programsSection.classList.add('hidden');
+                } else {
+                    programsSection.classList.remove('hidden');
+                }
+            }
+            
             // Show/hide appropriate sections
             const createSection = document.getElementById('create-modules-section');
             const missingSection = document.getElementById('missing-modules-section');
@@ -950,6 +1091,14 @@ foreach ($departments as $dept) {
                         
                         // Set the selected officer
                         officerSelect.value = data.department.officer_id || '';
+
+                        // Populate existing programs
+                        if (data.programs && data.programs.length > 0) {
+                            clearAllPrograms();
+                            data.programs.forEach(program => {
+                                addProgramRow(program.program_name, program.program_code);
+                            });
+                        }
                         
                         // Handle CEIT department special case
                         const missingCount = document.getElementById('missing-count');
@@ -1038,6 +1187,15 @@ foreach ($departments as $dept) {
         function closeDeptModal() {
             document.getElementById('dept-modal').classList.add('hidden');
             document.getElementById('dept-form').reset();
+            
+            // Clear all programs
+            clearAllPrograms();
+            
+            // Show programs section again (in case it was hidden for CEIT)
+            const programsSection = document.getElementById('programs-section');
+            if (programsSection) {
+                programsSection.classList.remove('hidden');
+            }
             
             // Clean up dynamically added officer options
             const officerSelect = document.getElementById('dept-officer');
@@ -1179,6 +1337,84 @@ foreach ($departments as $dept) {
                     }
                 }, 300);
             }, 3000);
+        }
+
+        // Program management functions
+        let programCounter = 0;
+
+        function addProgramRow(programName = '', programCode = '') {
+            programCounter++;
+            const container = document.getElementById('programs-container');
+            const noMessage = document.getElementById('no-programs-message');
+            
+            if (noMessage) {
+                noMessage.remove();
+            }
+
+            const programRow = document.createElement('div');
+            programRow.className = 'program-row bg-gray-50 border border-gray-200 rounded-lg p-4';
+            programRow.setAttribute('data-program-id', programCounter);
+            
+            programRow.innerHTML = `
+                <div class="flex items-start justify-between mb-3">
+                    <h4 class="text-sm font-semibold text-gray-700">
+                        <i class="fas fa-graduation-cap text-orange-500 mr-1"></i> Program #${programCounter}
+                    </h4>
+                    <button type="button" class="remove-program-btn text-red-500 hover:text-red-700 transition duration-200" data-program-id="${programCounter}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Program Name</label>
+                        <input type="text" name="programs[${programCounter}][name]" required
+                            value="${programName}"
+                            placeholder="e.g., Bachelor of Science in Information Technology"
+                            class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Program Code</label>
+                        <input type="text" name="programs[${programCounter}][code]" required
+                            value="${programCode}"
+                            placeholder="e.g., BSIT"
+                            class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(programRow);
+            
+            // Add event listener to remove button
+            programRow.querySelector('.remove-program-btn').addEventListener('click', function() {
+                removeProgramRow(this.getAttribute('data-program-id'));
+            });
+        }
+
+        function removeProgramRow(programId) {
+            const programRow = document.querySelector(`.program-row[data-program-id="${programId}"]`);
+            if (programRow) {
+                programRow.remove();
+            }
+            
+            // Check if there are no programs left
+            const container = document.getElementById('programs-container');
+            if (container.children.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4 text-gray-400 text-sm" id="no-programs-message">
+                        <i class="fas fa-info-circle mr-1"></i> No programs added yet. Click "Add Program" to get started.
+                    </div>
+                `;
+            }
+        }
+
+        function clearAllPrograms() {
+            const container = document.getElementById('programs-container');
+            container.innerHTML = `
+                <div class="text-center py-4 text-gray-400 text-sm" id="no-programs-message">
+                    <i class="fas fa-info-circle mr-1"></i> No programs added yet. Click "Add Program" to get started.
+                </div>
+            `;
+            programCounter = 0;
         }
 
         // Initialize when DOM is ready
